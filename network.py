@@ -19,7 +19,7 @@ def loadLabels(path: str):
     return labels
 
 
-def loadDataset(path: str, dataName: str, batchSize: int, classLabels: list[str, list[int]]):
+def loadDataset(path: str, dataName: str, batchSize: int, classLabels: list[str, list[int]], imageSize: tuple[int, int] = None):
     imageDir = path + dataName
     labelDir = imageDir + '_labels'
 
@@ -36,6 +36,10 @@ def loadDataset(path: str, dataName: str, batchSize: int, classLabels: list[str,
     for i in range(batchSize):
         imageData = Image.open(imageDir + '/' + imagePaths[i])
         labelData = Image.open(labelDir + '/' + labelPaths[i])
+
+        if imageSize is not None:
+            imageData = imageData.resize(imageSize)
+            labelData = labelData.resize(imageSize, Image.NEAREST)
 
         image = np.array(imageData) / 255.0
 
@@ -54,17 +58,17 @@ def loadDataset(path: str, dataName: str, batchSize: int, classLabels: list[str,
     return np.array(images), np.array(labels)
 
 
-def recursiveUNet(parent: keras.Layer, shape: list[int], kernelSize: list[int], depth: int):
-    conv = layers.Conv2D(shape[-1], kernelSize, activation=keras.activations.relu, padding='same')(parent)
+def recursiveUNet(parent: keras.Layer, shape: list[int], kernelSize: list[int], depth: int, filters: int = 16):
+    conv = layers.Conv2D(filters, kernelSize, activation=keras.activations.relu, padding='same')(parent)
     pool = layers.MaxPool2D()(conv)
 
     if depth > 1:
-        middle = recursiveUNet(pool, shape, kernelSize, depth - 1)
+        middle = recursiveUNet(pool, shape, kernelSize, depth - 1, filters * 2)
     else:
         middle = pool
 
     upSampled = layers.UpSampling2D()(middle)
-    conv2 = layers.Conv2D(shape[-1], kernelSize, activation=keras.activations.relu, padding='same')(upSampled)
+    conv2 = layers.Conv2D(filters, kernelSize, activation=keras.activations.relu, padding='same')(upSampled)
     concatenated = layers.Concatenate()([conv, conv2])
 
     return concatenated
@@ -75,8 +79,9 @@ def createUNet(shape: list[int, None], kernelSize: list[int], depth: int, classe
     network = recursiveUNet(inputLayer, shape, kernelSize, depth)
 
     output = layers.Conv2D(classes, kernelSize, padding='same')(network)
+    softmax = layers.Softmax()(output)
 
-    model = keras.Model(inputs=inputLayer, outputs=output)
+    model = keras.Model(inputs=inputLayer, outputs=softmax)
 
     return model
 
