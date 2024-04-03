@@ -19,7 +19,8 @@ def loadLabels(path: str):
     return labels
 
 
-def loadDataset(path: str, dataName: str, batchSize: int, classLabels: list[str, list[int]], imageSize: tuple[int, int] = None):
+def loadDataset(path: str, dataName: str, batchSize: int, classLabels: list[str, list[int]],
+                imageSize: tuple[int, int] = None, shuffle: bool = True):
     imageDir = path + dataName
     labelDir = imageDir + '_labels'
 
@@ -29,9 +30,10 @@ def loadDataset(path: str, dataName: str, batchSize: int, classLabels: list[str,
     images = []
     labels = []
 
-    zipped = list(zip(imagePaths, labelPaths))
-    random.shuffle(zipped)
-    imagePaths, labelPaths = zip(*zipped)
+    if shuffle:
+        zipped = list(zip(imagePaths, labelPaths))
+        random.shuffle(zipped)
+        imagePaths, labelPaths = zip(*zipped)
 
     for i in range(batchSize):
         imageData = Image.open(imageDir + '/' + imagePaths[i])
