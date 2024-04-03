@@ -5,7 +5,7 @@ U-Net convolutional network in Tensorflow trained on the CamVid dataset
 
 [Dataset Download](https://www.kaggle.com/datasets/carlolepelaars/camvid?resource=download)
 
-![baseline](https://github.com/dylan-berndt/U-Net/assets/33700799/ca9ee672-655c-46e6-b333-155c2ff40b3f)
-![ground](https://github.com/dylan-berndt/U-Net/assets/33700799/77703a4d-660e-411f-b0f4-e24f92d0f5f8)
-![prediction](https://github.com/dylan-berndt/U-Net/assets/33700799/9fa5ade4-b208-43ab-858c-8284d6cc6843)
+![baseline](https://github.com/dylan-berndt/U-Net/assets/33700799/298027d9-21c4-4b46-9db3-9127c2eb9d7b)
+![ground](https://github.com/dylan-berndt/U-Net/assets/33700799/e73c3940-a020-4a06-86a8-a2683adafce9)
+![prediction](https://github.com/dylan-berndt/U-Net/assets/33700799/85b8eac4-c125-4b02-b084-d04c38ceb50d)
 
