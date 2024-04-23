@@ -88,3 +88,48 @@ def createUNet(shape: list[int, None], kernelSize: list[int], depth: int, filter
     return model
 
 
+def createDenseNet(shape: list[int, None], classes: int):
+    inputLayer = layers.Input(shape)
+    reshaped = layers.Flatten()(inputLayer)
+    
+    hidden = layers.Dense(shape[0] * shape[1] * classes)(reshaped)
+
+    output = layers.Reshape([shape[0], shape[1], classes])(hidden)
+    
+    softmax = layers.Softmax()(output)
+
+    model = keras.Model(inputs=inputLayer, outputs=softmax)
+
+    return model
+
+
+def tileImages(images: np.array, poolSize: int):
+    imageSize = images.shape[1:3]
+    split = []
+    for i in range(len(images)):
+        for y in range(0, imageSize[1], poolSize):
+            for x in range(0, imageSize[0], poolSize):
+                split.append(images[i, x:x + poolSize, y:y + poolSize, :])
+    return np.array(split)
+
+
+def undoTiling(tiles: np.array, shape: list[int], channels: int = 3):
+    xTiles = shape[0] // tiles.shape[1]
+    yTiles = shape[1] // tiles.shape[2]
+    tilesPerImage = xTiles * yTiles
+    images = np.zeros([len(tiles) // tilesPerImage, shape[1], shape[0], channels])
+    for i in range(len(tiles)):
+        imageIndex = i // tilesPerImage
+        y = tiles.shape[2] * (i % yTiles)
+        x = tiles.shape[1] * ((i // yTiles) % xTiles)
+        # x = tiles.shape[1] * (i % xTiles)
+        # y = tiles.shape[2] * ((i // xTiles) % yTiles)
+        images[imageIndex, y:y + tiles.shape[2], x:x + tiles.shape[1], :] = tiles[i]
+    return images
+        
+        
+
+
+
+
+    
