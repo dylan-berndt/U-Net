@@ -10,6 +10,8 @@ import numpy as np
 import random
 
 
+# Loads the labels names and their corresponding
+# color classifications from the CamVid dataset
 def loadLabels(path: str):
     file = open(path + 'class_dict.csv')
     labels = []
@@ -19,6 +21,9 @@ def loadLabels(path: str):
     return labels
 
 
+# Loads dataset at path. Useful paths are: train, test, val
+# batchSize actually corresponds to the size of the dataset to be loaded
+# classLabels should be a value returned by loadLabels
 def loadDataset(path: str, dataName: str, batchSize: int, classLabels: list[str, list[int]],
                 imageSize: tuple[int, int] = None, shuffle: bool = True):
     imageDir = path + dataName
@@ -60,22 +65,30 @@ def loadDataset(path: str, dataName: str, batchSize: int, classLabels: list[str,
     return np.array(images), np.array(labels)
 
 
+# Define the UNet recursively using a depth value
+# Uses skip connections 
 def recursiveUNet(parent: keras.Layer, shape: list[int], kernelSize: list[int], depth: int, filters: int = 16):
+    # Convolutional block and downsampling
     conv = layers.Conv2D(filters, kernelSize, activation=keras.activations.relu, padding='same')(parent)
     pool = layers.MaxPool2D()(conv)
 
     if depth > 1:
+        # Define the next inner layer of the UNet
         middle = recursiveUNet(pool, shape, kernelSize, depth - 1, filters * 2)
     else:
+        # Base case
         middle = pool
 
+    # Upsampling and another convolutional block
     upSampled = layers.UpSampling2D()(middle)
     conv2 = layers.Conv2D(filters, kernelSize, activation=keras.activations.relu, padding='same')(upSampled)
+    # Skip connection that allows for greater context
     concatenated = layers.Concatenate()([conv, conv2])
 
     return concatenated
 
 
+# Create the full UNet model with final convolutional block and softmax
 def createUNet(shape: list[int, None], kernelSize: list[int], depth: int, filters: int, classes: int):
     inputLayer = layers.Input(shape)
     network = recursiveUNet(inputLayer, shape, kernelSize, depth, filters)
@@ -88,12 +101,17 @@ def createUNet(shape: list[int, None], kernelSize: list[int], depth: int, filter
     return model
 
 
+# Define the densely connected network with shape [poolSize, poolSize, 3]
 def createDenseNet(shape: list[int, None], classes: int):
+    # Flatten input image to allow for connection to Dense layer
     inputLayer = layers.Input(shape)
     reshaped = layers.Flatten()(inputLayer)
-    
+
+    # Dense layer needs to have output shape equivalent to the image size * the amount of 
+    # classes due to one-hot encoding
     hidden = layers.Dense(shape[0] * shape[1] * classes)(reshaped)
 
+    # Reshape into image
     output = layers.Reshape([shape[0], shape[1], classes])(hidden)
     
     softmax = layers.Softmax()(output)
@@ -103,6 +121,7 @@ def createDenseNet(shape: list[int, None], classes: int):
     return model
 
 
+# Splits images into tiles of size [poolSize, poolSize]
 def tileImages(images: np.array, poolSize: int):
     imageSize = images.shape[1:3]
     split = []
@@ -113,6 +132,7 @@ def tileImages(images: np.array, poolSize: int):
     return np.array(split)
 
 
+# Recompiles split images into their original shape
 def undoTiling(tiles: np.array, shape: list[int], channels: int = 3):
     xTiles = shape[0] // tiles.shape[1]
     yTiles = shape[1] // tiles.shape[2]
